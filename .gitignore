@@ -1,0 +1,12 @@
+node_modules/
+.firefox*/
+qa-*.log
+*.scratch.mjs
+qa-render-*.mjs
+qa-upgrade-*.mjs
+preview*.png
+.DS_Store
+.env
+.env.*
+*.pem
+*.key

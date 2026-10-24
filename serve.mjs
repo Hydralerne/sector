@@ -1,0 +1,4 @@
+import http from 'node:http';
+import {readFile} from 'node:fs/promises';
+const files={'/':'index.html','/index.html':'index.html','/game.mjs':'game.mjs','/world.mjs':'world.mjs','/style.css':'style.css','/renderer.mjs':'renderer.mjs','/simulation.mjs':'simulation.mjs','/input.mjs':'input.mjs','/hud.mjs':'hud.mjs'};
+http.createServer(async(req,res)=>{const path=new URL(req.url,'http://local').pathname;const file=files[path];if(!file){res.writeHead(404);res.end('Not found');return;}try{const data=await readFile(new URL(file,import.meta.url));res.writeHead(200,{'Content-Type':file.endsWith('.mjs')?'text/javascript':file.endsWith('.css')?'text/css':'text/html','Cache-Control':'no-cache'});res.end(data);}catch{res.writeHead(500);res.end('File unavailable');}}).listen(Number(process.env.PORT||3000),'0.0.0.0',()=>console.log('Neon Escape on port '+(process.env.PORT||3000)));
