@@ -1,4 +1,6 @@
-import { MAP, cores, exit } from './world.mjs';
+import * as world from './world.mjs';
+import { cameraFor } from './camera.mjs';
+const { MAP, cores, exit } = world;
 
 // Dependency-free WebGL 1 renderer. World units, yaw direction and eye height
 // match game.mjs. All scenery is visual: world.mjs remains collision authority.
@@ -178,8 +180,104 @@ function buildFacility() {
   return mesh;
 }
 
-function buildActors({player,drones,now}) {
+// Low-poly hard-surface kit: all operative parts, stations and combat effects
+// share the existing dynamic mesh/upload. No extra materials or draw calls.
+function buildStations(mesh,player) {
+  for(const station of world.stations||[]) {
+    const {x,z,type,id}=station, used=player.stationUsed?.has(id);
+    const color=used?[.22,.27,.27]:type==='med'?[.18,.95,.55]:type==='ammo'?[1,.62,.13]:[.24,.72,1];
+    mesh.box(x,.055,z,.54,.10,.40,EDGE,2);
+    mesh.box(x,.39,z,.43,.64,.28,DARK,2);
+    mesh.box(x,.42,z-.151,.35,.48,.025,STEEL,2);
+    mesh.box(x,.55,z-.169,.27,.19,.018,color,2,used?.1:.85);
+    for(const dx of [-.19,.19]) mesh.box(x+dx,.4,z-.17,.025,.56,.025,EDGE,2);
+    if(type==='med') {
+      // Raised green cross, recognizable independently of color.
+      mesh.box(x,.54,z-.185,.14,.045,.02,[.85,1,.91],2,.5);
+      mesh.box(x,.54,z-.187,.045,.14,.02,[.85,1,.91],2,.5);
+    } else if(type==='ammo') {
+      for(const dx of [-.075,0,.075]) {
+        mesh.cylinder([x+dx,.46,z-.19],[x+dx,.60,z-.19],.018,GOLD,.4,6);
+      }
+      mesh.box(x,.21,z-.17,.25,.065,.035,EDGE,2);
+    } else {
+      for(let i=0;i<3;i++) mesh.box(x-.035,.59-i*.044,z-.187,.16-i*.025,.014,.02,COOL,2,.7);
+      mesh.box(x,.30,z-.20,.29,.045,.12,EDGE,2);
+      for(let i=0;i<4;i++) mesh.box(x-.09+i*.06,.326,z-.21,.03,.008,.035,COOL,2,.3);
+    }
+    mesh.box(x,.18,z+.146,.27,.12,.018,EDGE,2);
+  }
+}
+
+function buildOperative(mesh,player,yaw,pitch,visible,t) {
+  const c=Math.cos(yaw), s=Math.sin(yaw);
+  const at=(x,y,z)=>[player.x+x*c+z*s,y,player.z-x*s+z*c];
+  const box=(x,y,z,sx,sy,sz,color=EDGE,emission=0)=>mesh.box(...at(x,y,z),sx,sy,sz,color,2,emission,yaw);
+  const limb=(a,b,r,color=EDGE)=>mesh.cylinder(at(...a),at(...b),r,color,0,8);
+  // Firing origin remains at the agreed .72m eye/weapon plane. The muzzle
+  // follows pitch, while the armored body remains upright.
+  const grip=at(.12,.72,.14);
+  const forward=[s*Math.cos(pitch),Math.sin(pitch),c*Math.cos(pitch)];
+  const muzzle=grip.map((v,i)=>v+forward[i]*.33);
+  if(visible) {
+    const fabric=[.10,.14,.15], armor=[.25,.30,.30], accent=[.57,.43,.22];
+    const breathe=Math.sin(t*2)*.004, reload=player.reloading>0;
+    // Boots, articulated legs, knee pads and utility belt.
+    for(const side of [-1,1]) {
+      const x=side*.085;
+      box(x,.055,.035,.12,.10,.19,DARK);
+      limb([x,.10,0],[x,.28,.015],.047,fabric);
+      limb([x,.29,.015],[x,.46,0],.057,fabric);
+      box(x,.27,.055,.085,.09,.04,armor);
+      box(x,.43,-.02,.10,.08,.095,EDGE);
+    }
+    box(0,.48,0,.27,.075,.17,DARK);
+    box(0,.50,.095,.065,.05,.035,accent);
+    for(const x of [-.13,.13]) box(x,.48,0,.065,.105,.12,accent);
+    box(0,.62+breathe,0,.28,.24,.18,fabric);
+    box(0,.65+breathe,.10,.24,.19,.045,armor);
+    box(0,.64,-.11,.23,.23,.10,EDGE); // compact pack
+    box(0,.67,-.167,.14,.10,.018,accent);
+    box(0,.72,.129,.11,.018,.012,COOL,.7); // chest identification strip
+    limb([0,.73,0],[0,.79,0],.045,fabric);
+    box(0,.84,0,.17,.15,.17,armor); // helmet shell and brow
+    box(0,.855,.089,.145,.048,.025,[.14,.37,.43],.4);
+    box(0,.895,.035,.18,.035,.15,DARK);
+    for(const side of [-1,1]) {
+      box(side*.101,.835,0,.035,.085,.10,DARK);
+      box(side*.16,.70,0,.095,.09,.12,armor);
+    }
+    // Right trigger arm, left support arm; reload drops the support hand.
+    limb([.16,.69,.015],[.20,.59,.10],.041,fabric);
+    limb([.20,.59,.10],[.12,.70,.18],.034,armor);
+    limb([-.16,.69,.015],[-.19,.58,.09],.041,fabric);
+    limb([-.19,.58,.09],reload?[-.08,.49,.13]:[.08,.71,.29],.034,armor);
+    box(.12,.70,.18,.065,.055,.07,DARK);
+    // Receiver, stock, top rail, optic, magazine and pitched steel barrel.
+    box(.12,.73,.24,.075,.075,.23,DARK);
+    box(.12,.72,.07,.07,.07,.13,armor);
+    box(.12,.785,.23,.05,.018,.22,STEEL);
+    box(.12,.81,.20,.04,.035,.07,EDGE);
+    box(.12,.65,.23,.05,.10,.065,armor);
+    mesh.cylinder(grip,muzzle,.018,STEEL,0,8);
+    mesh.cylinder(muzzle.map((v,i)=>v-forward[i]*.045),muzzle,.028,DARK,0,8);
+  }
+  if(player.shotFlash>0) {
+    const tip=muzzle.map((v,i)=>v+forward[i]*.14);
+    mesh.cylinder(muzzle,tip,.045,[1,.64,.15],1,6);
+    mesh.cylinder(muzzle.map((v,i)=>v+forward[i]*.02),tip,.018,[1,.95,.60],1,6);
+    if(player.shotEnd && Object.values(player.shotEnd).every(Number.isFinite)) {
+      const end=[player.shotEnd.x,player.shotEnd.y,player.shotEnd.z];
+      mesh.cylinder(tip,end,.006,[1,.77,.32],.9,5);
+      mesh.box(...end,.045,.045,.045,[1,.65,.21],2,1,t*3);
+    }
+  }
+}
+
+export function buildActors({player,drones=[],now=0,yaw=player.yaw||0,pitch=player.pitch||0,thirdPerson=false}) {
   const mesh=new Mesh(), t=now*.001;
+  buildStations(mesh,player);
+  buildOperative(mesh,player,yaw,pitch,thirdPerson,t);
   cores.forEach((c,i)=>{
     if(player.collected.has(i)) return;
     const y=.64+Math.sin(t*2+i)*.055, spin=t*.65+i;
@@ -194,6 +292,7 @@ function buildActors({player,drones,now}) {
   // Three bars provide a spatial collection-progress indicator without UI text.
   for(let i=0;i<cores.length;i++) mesh.box(exit.x-.19+i*.19,.04,exit.z,.11,.025,.58,player.collected.has(i)?[.15,.76,.42]:[.32,.23,.10],2,.65);
   for(const [i,d] of drones.entries()) {
+    if(d.hp<=0) continue;
     const y=.69+Math.sin(t*3+i)*.035, angle=Math.atan2(player.x-d.x,player.z-d.z);
     const c=Math.cos(angle),s=Math.sin(angle);
     const at=(x,z)=>[d.x+x*c+z*s,d.z-x*s+z*c];
@@ -261,7 +360,7 @@ export function createRenderer(canvas) {
       gl.drawArrays(gl.TRIANGLES,0,count);
     }
     return {
-      render({player,yaw=0,pitch=0,drones=[],now=0,active=false}) {
+      render({player,yaw=0,pitch=0,drones=[],now=0,active=false,thirdPerson=false,aim=false}) {
         if(disposed || gl.isContextLost?.()) return;
         const rect=canvas.getBoundingClientRect?.();
         const dpr=Math.min(globalThis.devicePixelRatio||1,2);
@@ -273,15 +372,15 @@ export function createRenderer(canvas) {
         gl.disable(gl.BLEND); gl.disable(gl.CULL_FACE);
         gl.clearColor(.028,.042,.052,1); gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
         gl.useProgram(program);
-        const eye=.72+(active?Math.sin(player.time*9)*.012:0);
-        gl.uniform3f(uniforms.uCamera,player.x,eye,player.z);
+        const camera=cameraFor(player,yaw,pitch,thirdPerson,aim);
+        gl.uniform3f(uniforms.uCamera,camera.x,camera.y,camera.z);
         gl.uniform2f(uniforms.uLook,yaw,pitch);
         gl.uniform1f(uniforms.uAspect,width/height);
         gl.uniform3f(uniforms.uForward,Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),Math.cos(yaw)*Math.cos(pitch));
         gl.uniform1f(uniforms.uTime,now*.001);
         gl.uniform1f(uniforms.uUnlocked,player.collected.size===cores.length?1:0);
         draw(staticBuffer,staticCount);
-        const actors=new Float32Array(buildActors({player,drones,now}).data);
+        const actors=new Float32Array(buildActors({player,drones,now,yaw,pitch,thirdPerson}).data);
         gl.bindBuffer(gl.ARRAY_BUFFER,dynamicBuffer);
         gl.bufferData(gl.ARRAY_BUFFER,actors,gl.DYNAMIC_DRAW);
         draw(dynamicBuffer,actors.length/11);

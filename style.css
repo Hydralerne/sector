@@ -18,3 +18,17 @@ button{border-color:#717a75;background:#202827;color:#e6e3d5}button:hover{backgr
 #notice{position:fixed;left:50%;top:22%;transform:translateX(-50%);background:#111a1de8;border-left:2px solid #dfb773;padding:14px 22px;font:11px ui-monospace,monospace;letter-spacing:2px;opacity:0;pointer-events:none;transition:opacity .2s;white-space:nowrap}
 @media(max-width:650px){#telemetry{right:18px;top:90px;flex-direction:column;align-items:flex-end;gap:7px;font-size:8px;max-width:160px}#hud{top:100px}.stamina-label{margin-top:15px}#notice{top:70%;font-size:9px;max-width:95vw;padding:10px;letter-spacing:1px}.card{padding-bottom:40px}h1{font-size:65px}}
 @media(prefers-reduced-motion:reduce){#notice{transition:none}}
+/* Combat interface: retain existing IDs and the facility's restrained palette. */
+.weapon{margin-top:22px;padding-top:16px;border-top:1px solid #b0b8a52b}
+#ammo{font:30px ui-monospace,monospace;color:#eee6ce;margin:5px 0;font-variant-numeric:tabular-nums}
+#reload{font:9px ui-monospace,monospace;letter-spacing:1px;color:#dfb773}
+.combat-meta{display:flex;flex-direction:column;gap:8px;margin-top:15px;font:9px ui-monospace,monospace;color:#b5c8b8;letter-spacing:1px}
+.combat-meta b{color:#e4e1ce;font-weight:500}#context{position:fixed;left:50%;bottom:23%;transform:translateX(-50%);font:11px ui-monospace,monospace;color:#f1d29b;letter-spacing:1px;text-align:center;text-shadow:0 2px 8px #000;pointer-events:none}
+#map-panel{position:fixed;right:32px;bottom:90px;width:180px}#map-panel #map{position:static;display:block;width:180px;height:168px}
+.map-legend{display:flex;justify-content:space-between;font:8px ui-monospace,monospace;margin-top:7px;color:#8edabc}.map-legend span:nth-child(2){color:#9fc8ed}.map-legend span:nth-child(3){color:#c6a7ed}
+footer{gap:12px;flex-wrap:wrap;font-size:9px;letter-spacing:.5px}.card .note{line-height:1.8}#overlay{overflow-y:auto}.card{max-width:600px}#notice{white-space:normal;text-align:center;max-width:80vw;width:max-content}#touch{z-index:3}#overlay{z-index:5}header{z-index:6}#touch button{min-width:44px;min-height:44px;font:10px ui-monospace,monospace;padding:12px 10px;border-radius:3px;user-select:none;-webkit-user-select:none}#touch button:active{background:#675c3d;color:#fff5d6}.touch-actions{text-align:right}
+@media(pointer:coarse){#touch{bottom:max(15px,env(safe-area-inset-bottom));left:12px;right:12px}#map-panel{bottom:210px;right:18px;width:130px}#map-panel #map{width:130px;height:121px}.map-legend{font-size:6px}#context{bottom:200px;max-width:60vw}#hud{pointer-events:none}}
+@media(max-width:650px){#map-panel{right:18px;bottom:75px;width:130px}#map-panel #map{width:130px;height:121px}.map-legend{font-size:6px}#hud{width:150px}.weapon{margin-top:16px;padding-top:12px}#ammo{font-size:24px}.combat-meta{font-size:8px;gap:7px}#context{font-size:9px;width:70vw}.card{padding-top:110px;padding-bottom:35px}#overlay{align-items:flex-start}.card .note{font-size:10px}#notice{top:55%;font-size:10px}}
+@media(pointer:coarse) and (max-width:650px){#map-panel{bottom:210px}#hint{max-width:145px;font-size:10px}#context{bottom:190px}}
+@media(max-height:580px){#hud{top:85px}.stamina-label,.objective{margin-top:10px}.weapon{margin-top:10px;padding-top:8px}#hint{display:none}.combat-meta{margin-top:7px}.card{padding-top:85px}h1{font-size:60px}.card .note{line-height:1.5}#map-panel{bottom:65px}#telemetry{top:85px}}
+@media(pointer:coarse) and (max-height:580px){#touch{bottom:8px}#map-panel{display:none}#context{bottom:150px}#hud{left:18px;width:135px}.combat-meta{display:none}}

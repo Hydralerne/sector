@@ -2,6 +2,7 @@ import {createRenderer} from './renderer.mjs';
 import {createSession,tick,lineOfSight} from './simulation.mjs';
 import {createInput} from './input.mjs';
 import {createHUD} from './hud.mjs';
+import {cores} from './world.mjs';
 
 const $=id=>document.getElementById(id),canvas=$('view');
 let renderer;
@@ -31,14 +32,14 @@ if(renderer){
     if(active){
       tick(session,control,dt);
       const p=session.player;
-      if(p.collected.size>lastCores){notice='CORE SECURED · '+p.collected.size+' / 3';noticeUntil=now+3000;lastCores=p.collected.size;}
+      if(p.collected.size>lastCores){notice='CORE SECURED · '+p.collected.size+' / '+cores.length;noticeUntil=now+3000;lastCores=p.collected.size;}
       if(p.hp<lastHP-.01){notice='DAMAGE · BREAK LINE OF SIGHT';noticeUntil=now+900;}lastHP=p.hp;
       if(p.status==='won')overlay(`Extraction successful. All cores secured in ${p.time.toFixed(1)} seconds. Integrity ${Math.ceil(p.hp)}%.`,'PLAY AGAIN');
       if(p.status==='lost')overlay('Suit integrity lost. Use corners to break line of sight. Sprinting attracts drones from farther away.','RETRY MISSION');
     }
     renderer.render({player:session.player,...control,drones:session.drones,now,active});
-    const damaged=active&&session.drones.some(d=>Math.hypot(d.x-session.player.x,d.z-session.player.z)<.7&&lineOfSight(d,session.player));
-    hud.render(session,control.yaw,{damaged,notice:now<noticeUntil?notice:''});
+    const damaged=active&&session.drones.some(d=>d.hp>0&&Math.hypot(d.x-session.player.x,d.z-session.player.z)<.7&&lineOfSight(d,session.player));
+    hud.render(session,control.yaw,{damaged,notice:session.player.messageTime>0?session.player.message:(now<noticeUntil?notice:'')});
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);

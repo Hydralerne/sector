@@ -1,12 +1,11 @@
 # Sector 07 — Extraction Protocol
 
-A dependency-free, first-person WebGL extraction game set in an abandoned industrial reactor facility. Recover three reactor cores, evade autonomous security, and reach extraction with suit integrity remaining.
+A dependency-free WebGL extraction shooter in an industrial reactor facility. Explore a 29×27-tile sector, recover three reactor cores, fight autonomous security and reach extraction alive. Defaults to first-person on every new run; press V for the optional over-the-shoulder third-person view.
 
 ## Run
-Requires Node.js 18+ and a modern browser with WebGL enabled.
+Requires Node.js 18+ and a browser with WebGL enabled.
+From the repository root (or `neon-escape/` in the lab workspace):
 ```sh
-git clone https://github.com/Hydralerne/sector.git
-cd sector
 npm start
 # Open http://localhost:3000
 npm test
@@ -14,26 +13,36 @@ npm test
 No installation or downloads needed. `PORT` overrides 3000.
 
 ## Controls
-- WASD: move; mouse: look after clicking Deploy / Resume.
-- Shift: sprint while reserve lasts; reserve recharges when not sprinting.
+- WASD: move. Mouse: look after clicking Deploy / Resume.
+- Shift: sprint; stamina recharges when not sprinting.
+- Left mouse / F: fire; right mouse / Q: hold aim.
+- R: reload a 12-round magazine from reserve ammunition.
+- E: use a nearby health station, ammo cache or security terminal.
+- V: toggle third-person / first-person camera.
+- N: restart. Escape / Pause: pause.
 - Arrow Up/Down: move; Left/Right: turn without pointer lock.
-- Escape or Pause: pause. R: restart.
-- Touch: on-screen movement/turn controls and sprint button.
+- Touch: on-screen movement, turning, sprint, fire, aim, reload, interact and view controls.
 
-Collect every core before approaching the extraction pad. Drones patrol, investigate a visible nearby player, and lose tracking behind walls. Close contact drains integrity; walls prevent contact damage. The minimap shows the player, cores, security and exit. Pausing freezes the timer and simulation.
+Collect every core before reaching extraction. Drones patrol, pursue visible players and damage on close contact; steel walls block sight and gunfire. Destroy drones with three hits. Supply stations are single-use; health stations wait until you need healing. Security terminals temporarily disable drone attacks. Watch ammunition, integrity and stamina; the minimap shows objectives, stations, live security and extraction. Pause freezes the simulation.
 
 ## Architecture
-- `game.mjs`: browser lifecycle, pause/resume/restart and animation orchestration.
-- `simulation.mjs`: pure, substepped movement, normalized input, stamina, drone perception/pursuit and session updates.
-- `world.mjs`: map, collision, objectives and base mechanics.
-- `renderer.mjs`: native WebGL geometry, procedural materials, industrial wall panels, overhead conduits/lights, fog, flashlight, cores and drones. Static facility mesh is uploaded once.
-- `input.mjs`: keyboard, pointer-lock fallback and touch input, with held-state cleanup.
-- `hud.mjs`: DOM presentation and minimap.
-- `style.css` / `index.html`: responsive interface and accessibility labels.
-- `simulation.test.mjs` / `world.test.mjs`: 13 node:test checks.
+- `game.mjs`: lifecycle and animation orchestration.
+- `simulation.mjs`: movement, stamina, perception/pursuit and session updates.
+- `world.mjs`: expanded map, collision, stations and extraction mechanics.
+- `combat.mjs`: camera-aligned hitscan, reload and station interactions.
+- `camera.mjs`: shared collision-aware shoulder / eye camera used for rendering and shooting.
+- `renderer.mjs`: native WebGL batches, procedural industrial facility, operative with rifle, drones, station lights and muzzle/tracer effects.
+- `input.mjs`: keyboard, pointer-lock fallback and touch controls with held-state cleanup.
+- `hud.mjs`: ammunition, kills, station hints and scale-to-fit minimap.
+- `style.css` / `index.html`: responsive interface and accessible buttons.
 
 ## Verification
-`npm test` covers collision, reachable objectives, stamina, normalized diagonal speed, line of sight, safe drone motion, win/loss/reset, time-step bounds and state isolation. Independent QA scratch scripts are separate from the production modules. `qa-browser.py` is an optional dependency-free macOS Firefox Marionette smoke test (hard-coded Firefox application path and isolated local profile); it verifies WebGL initialization, deploy, rendered frames and pause freeze, and writes preview screenshots.
+`npm test` runs node:test checks for combat in both camera modes, cooldown/reload, station use, camera collision, renderer batching/lifecycle, reachable objectives, movement, drones, win/loss/reset and timestep bounds. Independent QA scratch scripts are separate from production modules. `qa-browser.py` is an optional dependency-free macOS Firefox Marionette smoke test (hard-coded Firefox application path and isolated profile); it checks WebGL, deploy, rendered frames and pause and writes screenshots.
 
 ## Scope and limitations
-This is a polished small vertical slice, not a full commercial game or photorealistic production. Procedural geometry/materials use no external assets or game engine. Single-player sessions are in memory: no saved progress, audio, multiplayer, combat or backend. Drones use patrol and direct line-of-sight pursuit, not full navigation-mesh pathfinding. Pointer lock depends on browser policy; arrows remain available. Mobile controls are implemented but have not been validated on physical devices. Performance depends on browser/GPU. WebGL initialization failure disables deployment with an explanation. Static files can be hosted by an ordinary HTTP server. The supplied server binds to 0.0.0.0 for local preview and is not hardened for production.
+A single-player vertical slice, not a full commercial game or photorealistic production. Procedural geometry/materials use no external assets or engine. No saves, audio, multiplayer or backend. Combat is hitscan rather than simulated projectiles. Drones use patrol and direct line-of-sight pursuit, not navigation-mesh pathfinding. The shoulder camera shortens near walls. Pointer lock depends on browser policy; keyboard fallback is available. Mobile controls have not been validated on physical devices. Browser/GPU performance varies. WebGL failure disables deployment with an explanation. Static files can be hosted with an ordinary HTTP server. The supplied server binds to 0.0.0.0 for local preview and is not hardened for production.
+
+## Social sharing
+`og-image.png` is the 1200×630 social card. Open Graph and Twitter large-image metadata are in `index.html`. The image uses the public raw GitHub URL so it is absolute without assuming a game deployment domain. After hosting, point both image URLs to your hosted `/og-image.png` and add `og:url` with the canonical game URL. Sharing the GitHub repository itself uses GitHub's own metadata; optionally upload this PNG in repository Settings → Social preview. Social platforms may cache cards or restrict remote image hosts.
+
+The PNG is prebuilt: no build is needed to play or deploy. Its optional artwork generator is `og-image.swift` (macOS AppKit): run `swift og-image.swift` from this directory to regenerate it. Serve/deploy `og-image.png` alongside the game files.
